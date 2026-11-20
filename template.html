@@ -72,10 +72,10 @@
   .feed:active{transform:translateX(-50%) translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
 
   .bob{position:relative}
-  /* the sheep gets chonkier with every meal: wider faster than taller. It grows from its feet,
-     anchored under its head, so the body spreads left (and off-screen on phones, which is the joke) */
-  .grow{transform-origin:78% 100%;transition:scale .55s cubic-bezier(.34,1.56,.64,1)}
-  .grow .counter{transition:scale .55s cubic-bezier(.34,1.56,.64,1)}
+  /* the belly warp is drawn into this canvas (WebGL); it overhangs the sticker so the belly can bulge out */
+  .warp{position:absolute;left:-30%;top:-20%;width:142%;height:145%;pointer-events:none;display:none}
+  .sticker.gl .warp{display:block}
+  .sticker.gl img{opacity:0}
   .counter{position:absolute;left:50%;top:1%;transform:translate(-50%,-30%) rotate(-4deg);
     z-index:9;pointer-events:none;white-space:nowrap;text-align:center;
     font-family:var(--font);font-weight:900;font-size:40px;line-height:1;
@@ -106,15 +106,14 @@
 </head>
 <body>
   <div class="stage" id="stage">
-   <div class="grow" id="grow">
     <div class="bob">
       <div class="sticker" id="sticker" role="button" aria-label="Poke the sheep">
         <img id="base" alt="" src="data:image/webp;base64,__BASE__">
         <img id="jaw" alt="" src="data:image/webp;base64,__JAW__">
+        <canvas id="warp" class="warp"></canvas>
       </div>
       <div class="counter" id="counter"><span id="calnum">0</span> cal</div>
     </div>
-   </div>
   </div>
   <canvas id="tuft" width="480" height="480"></canvas>
   <button class="feed" id="feed">feed</button>
@@ -131,8 +130,7 @@
   const MX = __MX__, MY = __MY__;        // mouth, as a fraction of the sticker
   const OPEN = 2.4, WIDE = 3.6;          // jaw drop, % of sticker height
   const CAL_PER_BITE = 6;                // it's grass. sheep is on a diet.
-  const GROW_X = .12, GROW_Y = .06;      // growth per meal
-  const MAX_X = 1.8,  MAX_Y = 1.4;       // absolute unit
+  const FAT_PER_BITE = .035, FAT_PER_MEAL = .05, FAT_MAX = .78;   // belly bulge strength (0 = normal)
   const BITES = [150, 235, 315, 400];    // tuft canvas y of each bite, top to bottom
 
   const stage = document.getElementById('stage');
@@ -146,20 +144,90 @@
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const rand = (a, b) => a + Math.random() * (b - a);
   let jawPos = 0, busy = false, queued = 0;
-  const growEl = document.getElementById('grow');
-  let gx = 1, gy = 1;
-  const OX = .78;                        // matches .grow transform-origin
-  function chonk(){
-    // never let the head leave the screen: keep the ear inside the right edge and leave room for the counter on top
-    const W0 = growEl.offsetWidth, H0 = growEl.offsetHeight, r = growEl.getBoundingClientRect();
-    const ox = r.left + r.width*OX;
-    const capX = (innerWidth - 8 - ox) / ((1 - OX) * W0);
-    const capY = (r.bottom - 64) / H0;
-    gy = Math.max(gy, Math.min(MAX_Y, capY, gy + GROW_Y));
-    gx = Math.max(gx, gy, Math.min(MAX_X, capX, gx + GROW_X));
-    growEl.style.scale = `${gx} ${gy}`;
-    counter.style.scale = `${gy/gx} 1`;   // keep the counter text from stretching
+
+  // ---------- belly warp ----------
+  // The sticker is redrawn in WebGL with a bulge centred on the belly. Every bite pushes it a bit
+  // further, so the sheep swells and its belly sags out of the sticker; it jiggles when it settles.
+  // The head sits near the bulge's rim, so the face barely moves. No WebGL → plain sticker, no bulge.
+  const PAD = [.30, .20, .12, .25];       // warp canvas overhang: left, top, right, bottom (sticker units)
+  const BC = [.35, .75], BR = [.68, .52]; // bulge centre and radius (sticker units)
+  let gl = null, fat = 0, wob = 0, wobT = 0;
+  function amtNow(){
+    const t = (performance.now() - wobT) / 1000;
+    return Math.max(0, fat + wob * Math.sin(t * 17) * Math.exp(-t * 3.2));
   }
+  function jiggle(a){ if (gl){ wob = a; wobT = performance.now(); } }
+  function fatten(d){ if (gl) fat = Math.min(FAT_MAX, fat + d); }
+  const warpF = (p, a) => {
+    const dx = (p[0]-BC[0])/BR[0], dy = (p[1]-BC[1])/BR[1], r2 = dx*dx + dy*dy;
+    if (r2 >= 1) return 1; const k = 1 - r2; return 1 - a*k*k;
+  };
+  // where a point of the original sticker shows up after the warp (fixed-point inverse)
+  function onScreen(src){
+    if (!gl || fat === 0) return src;
+    let p = src;
+    for (let i = 0; i < 24; i++){ const f = warpF(p, fat); p = [BC[0] + (src[0]-BC[0])/f, BC[1] + (src[1]-BC[1])/f]; }
+    return p;
+  }
+  (async function initWarp(){
+    try {
+      const c = document.getElementById('warp');
+      const g = c.getContext('webgl', {premultipliedAlpha:true, alpha:true, antialias:false});
+      if (!g) return;
+      const sh = (type, src) => { const s = g.createShader(type); g.shaderSource(s, src); g.compileShader(s);
+        if (!g.getShaderParameter(s, g.COMPILE_STATUS)) throw g.getShaderInfoLog(s); return s; };
+      const prog = g.createProgram();
+      g.attachShader(prog, sh(g.VERTEX_SHADER,
+        'attribute vec2 p; varying vec2 v; void main(){ v = vec2(p.x*.5+.5, .5-p.y*.5); gl_Position = vec4(p, 0., 1.); }'));
+      g.attachShader(prog, sh(g.FRAGMENT_SHADER, `precision mediump float;
+        varying vec2 v; uniform sampler2D B, J; uniform vec4 P; uniform vec2 C, R; uniform float A, JY;
+        vec4 tx(sampler2D t, vec2 s){ return (s.x < 0. || s.x > 1. || s.y < 0. || s.y > 1.) ? vec4(0.) : texture2D(t, s); }
+        void main(){
+          vec2 q = vec2(-P.x + v.x*(1. + P.x + P.z), -P.y + v.y*(1. + P.y + P.w));
+          vec2 d = (q - C) / R; float k = max(0., 1. - dot(d, d));
+          vec2 s = C + (q - C) * (1. - A*k*k);
+          vec4 b = tx(B, s), j = tx(J, s - vec2(0., JY));
+          gl_FragColor = j + b*(1. - j.a);
+        }`));
+      g.linkProgram(prog);
+      if (!g.getProgramParameter(prog, g.LINK_STATUS)) throw g.getProgramInfoLog(prog);
+      g.useProgram(prog);
+      const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf);
+      g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), g.STATIC_DRAW);
+      const loc = g.getAttribLocation(prog, 'p'); g.enableVertexAttribArray(loc); g.vertexAttribPointer(loc, 2, g.FLOAT, false, 0, 0);
+      g.pixelStorei(g.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      const tex = async (img, unit) => {
+        if (img.decode) { try { await img.decode(); } catch(e){} }
+        if (!img.complete || !img.naturalWidth) await new Promise(r => img.addEventListener('load', r, {once:true}));
+        const t = g.createTexture(); g.activeTexture(g.TEXTURE0 + unit); g.bindTexture(g.TEXTURE_2D, t);
+        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE);
+        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.LINEAR); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.LINEAR);
+        g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, img);
+      };
+      await tex(document.getElementById('base'), 0);
+      await tex(jaw, 1);
+      const U = n => g.getUniformLocation(prog, n);
+      g.uniform1i(U('B'), 0); g.uniform1i(U('J'), 1);
+      g.uniform4f(U('P'), ...PAD); g.uniform2f(U('C'), ...BC); g.uniform2f(U('R'), ...BR);
+      const uA = U('A'), uJY = U('JY');
+      g.enable(g.BLEND); g.blendFunc(g.ONE, g.ONE_MINUS_SRC_ALPHA);
+      gl = g;
+      sticker.classList.add('gl');
+      (function draw(){
+        const dpr = Math.min(2, devicePixelRatio || 1);
+        const w = Math.round(c.clientWidth*dpr), h = Math.round(c.clientHeight*dpr);
+        if (c.width !== w || c.height !== h){ c.width = w; c.height = h; }
+        g.viewport(0, 0, w, h); g.clearColor(0, 0, 0, 0); g.clear(g.COLOR_BUFFER_BIT);
+        // the jaw is still animated on the (hidden) <img>; read its offset each frame
+        let jy = 0; const m = getComputedStyle(jaw).transform;
+        if (m && m !== 'none'){ const n = m.match(/matrix(3d)?\(([^)]+)\)/);
+          if (n){ const a = n[2].split(',').map(Number); jy = (n[1] ? a[13] : a[5]) / (jaw.offsetHeight || 1); } }
+        g.uniform1f(uA, amtNow()); g.uniform1f(uJY, jy);
+        g.drawArrays(g.TRIANGLES, 0, 3);
+        requestAnimationFrame(draw);
+      })();
+    } catch(e){ gl = null; sticker.classList.remove('gl'); }
+  })();
 
   function resetTuft(){
     ctx.globalCompositeOperation = 'source-over';
@@ -173,7 +241,8 @@
   }
   function geom(){
     const r = sticker.getBoundingClientRect();
-    return { r, mx:r.left + r.width*MX, my:r.top + r.height*MY, size:r.width*0.3 };
+    const m = onScreen([MX, MY]);
+    return { r, mx:r.left + r.width*m[0], my:r.top + r.height*m[1], size:r.width*0.3 };
   }
   // tuft transform: centre at (x,y), scale s, rotation deg
   const tf = (g,x,y,s,rot=0) => `translate(${x-g.size/2}px,${y-g.size/2}px) scale(${s}) rotate(${rot}deg)`;
@@ -353,6 +422,7 @@
       await moveJaw(0, 85, 'ease-in');
       bite(k); sfx.nom(k); nomText(g, k); calPop(g, CAL_PER_BITE, k); addCals(CAL_PER_BITE);
       bits(g.mx, g.my + g.r.height*.03, 7, g.r.width/600, k);
+      fatten(FAT_PER_BITE); jiggle(.08);
       sticker.animate([{transform:'scale(1)'},{transform:'scale(1.025,.975)'},{transform:'scale(1)'}],{duration:180});
       // tug back a little
       await moveTuft(g, tf(g, q.x, q.y + g.size*.07, 1, 0), 140, 'ease-out');
@@ -363,8 +433,8 @@
     // swallow + chew
     sfx.gulp();
     for (let i = 0; i < 4; i++){ await moveJaw(1.1, 95); await moveJaw(0, 95, 'ease-in'); }
-    // all done: get bigger, then BLEEEAT
-    chonk();
+    // all done: belly settles with a big jiggle, then BLEEEAT
+    fatten(FAT_PER_MEAL); jiggle(.22);
     await wait(450);
     await doBleat();
     busy = false;
@@ -406,6 +476,7 @@
     stage.classList.add('eating');
     sfx.bleat();
     bubble();
+    if (fat > 0) jiggle(.1);
     sticker.animate([
       {transform:'rotate(0) scale(1)'},
       {transform:'rotate(-2.5deg) scale(1.04,.97)', offset:.12},
