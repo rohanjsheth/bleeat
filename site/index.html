@@ -337,6 +337,8 @@
     const d = document.createElement('div'); d.className = 'nom';
     d.textContent = 'BLEE' + 'E'.repeat(Math.floor(rand(0, 3))) + 'AT!';
     d.style.fontSize = Math.max(34, g.r.width * .11) + 'px';
+    d.style.color = '#fff';
+    d.style.textShadow = '0 3px 12px rgba(20,80,130,.35)';
     document.body.appendChild(d);
     const x = g.mx - g.r.width * .1 - d.offsetWidth;
     const y = g.my - g.r.height * .3;
