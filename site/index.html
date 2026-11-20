@@ -90,8 +90,6 @@
   .nom{position:fixed;left:0;top:0;z-index:7;pointer-events:none;
     font-family:var(--font);font-weight:900;color:#000;white-space:nowrap}
 
-  .bubble{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:4}
-  .bubble text{font-family:var(--font);font-weight:900}
 </style>
 </head>
 <body>
@@ -333,44 +331,23 @@
   }
 
   // ---------- poke → BLEEEAT ----------
-  const NS = 'http://www.w3.org/2000/svg';
+  // plain text, same style as the noms, just bigger
   function bubble(){
-    const s = document.createElementNS(NS, 'svg');
-    s.setAttribute('class', 'bubble');
-    s.setAttribute('viewBox', `0 0 ${SW} ${SH}`);
-    s.setAttribute('preserveAspectRatio', 'none');
-    const word = 'BLEE' + 'E'.repeat(Math.floor(rand(0, 3))) + 'AT!';
-    const cx = SW*.34, cy = SH*.13, rx = 80 + word.length*31, ry = 112;
-    // spiky shout burst
-    const n = 22, pts = [];
-    for (let i = 0; i < n*2; i++){
-      const a = (i / (n*2)) * Math.PI*2, out = i % 2 === 0;
-      const k = out ? rand(1.08, 1.26) : rand(.84, .9);
-      pts.push([cx + Math.cos(a)*rx*k, cy + Math.sin(a)*ry*k]);
-    }
-    const tipX = SW*MX - SW*.035, tipY = SH*MY - SH*.04;
-    const tail = `M${cx + rx*.35},${cy + ry*.55} L${tipX},${tipY} L${cx + rx*.7},${cy + ry*.2} Z`;
-    const burst = 'M' + pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' L') + ' Z';
-    const g = document.createElementNS(NS, 'g');
-    g.innerHTML = `
-      <path d="${tail}" fill="#fff" stroke="#000" stroke-width="9" stroke-linejoin="round"/>
-      <path d="${burst}" fill="#000" transform="translate(7 9)"/>
-      <path d="${burst}" fill="#fff" stroke="#000" stroke-width="9" stroke-linejoin="round"/>
-      <path d="${tail}" fill="#fff"/>
-      <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="88"
-        letter-spacing="-1" fill="#000">${word}</text>`;
-    s.appendChild(g);
-    sticker.appendChild(s);
-    const rot = rand(-7, 3);
-    s.style.transformOrigin = `${MX*100 - 3}% ${MY*100 - 4}%`;
-    s.animate([
-      {transform:`scale(.15) rotate(${rot-12}deg)`, opacity:0},
-      {transform:`scale(1.12) rotate(${rot+2}deg)`, opacity:1, offset:.16},
-      {transform:`scale(.97) rotate(${rot-1}deg)`, offset:.26},
-      {transform:`scale(1.02) rotate(${rot+1}deg)`, offset:.34},
-      {transform:`scale(1) rotate(${rot}deg)`, opacity:1, offset:.82},
-      {transform:`scale(1.06) rotate(${rot}deg)`, opacity:0}
-    ], {duration:1150, easing:'ease-out'}).finished.then(() => s.remove());
+    const g = geom();
+    const d = document.createElement('div'); d.className = 'nom';
+    d.textContent = 'BLEE' + 'E'.repeat(Math.floor(rand(0, 3))) + 'AT!';
+    d.style.fontSize = Math.max(34, g.r.width * .11) + 'px';
+    document.body.appendChild(d);
+    const x = g.mx - g.r.width * .1 - d.offsetWidth;
+    const y = g.my - g.r.height * .3;
+    const rot = rand(-10, -4);
+    d.animate([
+      {transform:`translate(${x}px,${y+20}px) scale(.3) rotate(${rot}deg)`, opacity:0},
+      {transform:`translate(${x}px,${y}px) scale(1.15) rotate(${rot}deg)`, opacity:1, offset:.16},
+      {transform:`translate(${x}px,${y-4}px) scale(1) rotate(${rot}deg)`, opacity:1, offset:.3},
+      {transform:`translate(${x}px,${y-12}px) scale(1) rotate(${rot}deg)`, opacity:1, offset:.8},
+      {transform:`translate(${x}px,${y-30}px) scale(1) rotate(${rot}deg)`, opacity:0}
+    ], {duration:1150, easing:'ease-out'}).finished.then(() => d.remove());
   }
   let bleating = false, bleatP = null;
   function bleat(){

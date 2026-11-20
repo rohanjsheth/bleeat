@@ -1,6 +1,6 @@
 # blee.eat
 
-Sister site to simin.eat: one sticker, one button, one gag. A real sheep photo cut out as a paper-bordered sticker on a sky-blue background. Tapping **feed** flies a clump of grass (a real photo, with dirt) up to its mouth, and it eats it in four bites ("nom, nom, NOM, NOM!!"), then swallows, chews and bleats (same bubble + baa as a poke). Pokes during a meal are ignored; a feed tapped during a poke-bleat waits for it. The calorie counter at the top goes up 6 cal per bite. Tapping the sheep makes it bleat, with a spiky shout bubble saying "BLEEEAT!" (0–2 extra E's at random) in the site's normal bold font. Spacebar feeds, B bleats. Extra feed taps queue up (max 5).
+Sister site to simin.eat: one sticker, one button, one gag. A real sheep photo cut out as a paper-bordered sticker on a sky-blue background. Tapping **feed** flies a clump of grass (a real photo, with dirt) up to its mouth, and it eats it in four bites ("nom, nom, NOM, NOM!!"), then swallows, chews and bleats (same baa + text as a poke). Pokes during a meal are ignored; a feed tapped during a poke-bleat waits for it. The calorie counter at the top goes up 6 cal per bite. Tapping the sheep makes it bleat, and "BLEEEAT!" (0–2 extra E's at random) pops up as plain bold text, same style as the noms but bigger. Spacebar feeds, B bleats. Extra feed taps queue up (max 5).
 
 ## Files
 - `template.html` is the page source. Images and sounds are inlined as base64 via `__PLACEHOLDER__` tokens.
@@ -11,7 +11,7 @@ Sister site to simin.eat: one sticker, one button, one gag. A real sheep photo c
 - `src/snd/` has `bleat.mp3` ("Sheep Baa" by AntumDeluge from a recording by mikewest, CC0, OpenGameArt) and `bite.mp3` ("Crunchy bite", CC0, OpenGameArt). Both are trimmed and loudness-normalized.
 
 ## Style (kept the same as simin.eat)
-- Font: Outfit 800/900 (a free stand-in for Crumbl Sans), loaded from Google Fonts. It's used everywhere, including the bleat bubble.
+- Font: Outfit 800/900 (a free stand-in for Crumbl Sans), loaded from Google Fonts. It's used everywhere, including the bleat text.
 - Black pill "feed" button at bottom center, round black mute button top right (remembered in localStorage as `blee-muted`).
 - Counter: white with a black outline and shadow, tilted -3°.
 - Background `#87CEEB`, with blue-tinted drop shadows.
