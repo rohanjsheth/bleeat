@@ -433,8 +433,8 @@
     // swallow + chew
     sfx.gulp();
     for (let i = 0; i < 4; i++){ await moveJaw(1.1, 95); await moveJaw(0, 95, 'ease-in'); }
-    // all done: belly settles with a big jiggle, then BLEEEAT
-    fatten(FAT_PER_MEAL); jiggle(.22);
+    // all done: belly settles, then BLEEEAT
+    fatten(FAT_PER_MEAL);
     await wait(450);
     await doBleat();
     busy = false;
