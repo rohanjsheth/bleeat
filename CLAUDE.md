@@ -1,6 +1,6 @@
 # blee.eat
 
-Sister site to simin.eat: one sticker, one button, one gag. A real sheep photo cut out as a paper-bordered sticker on a sky-blue background. Tapping **feed** flies a clump of grass (a real photo, with dirt) up to its mouth, and it eats it in four bites ("nom, nom, NOM, NOM!!"), then swallows, chews, plays a twinkle and hops. The calorie counter at the top goes up 6 cal per bite. Tapping the sheep makes it bleat, with a spiky shout bubble saying "BLEEEAT!" (0–2 extra E's at random) in the site's normal bold font. Spacebar feeds, B bleats. Extra feed taps queue up (max 5).
+Sister site to simin.eat: one sticker, one button, one gag. A real sheep photo cut out as a paper-bordered sticker on a sky-blue background. Tapping **feed** flies a clump of grass (a real photo, with dirt) up to its mouth, and it eats it in four bites ("nom, nom, NOM, NOM!!"), then swallows, chews and bleats (same bubble + baa as a poke). Pokes during a meal are ignored; a feed tapped during a poke-bleat waits for it. The calorie counter at the top goes up 6 cal per bite. Tapping the sheep makes it bleat, with a spiky shout bubble saying "BLEEEAT!" (0–2 extra E's at random) in the site's normal bold font. Spacebar feeds, B bleats. Extra feed taps queue up (max 5).
 
 ## Files
 - `template.html` is the page source. Images and sounds are inlined as base64 via `__PLACEHOLDER__` tokens.

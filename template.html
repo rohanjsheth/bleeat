@@ -318,17 +318,16 @@
     // swallow + chew
     sfx.gulp();
     for (let i = 0; i < 4; i++){ await moveJaw(1.1, 95); await moveJaw(0, 95, 'ease-in'); }
-    sfx.yay();
-    await sticker.animate([
-      {transform:'translateY(0)'},{transform:'translateY(-4%) rotate(-2deg)'},
-      {transform:'translateY(0) scale(1.03,.97)'},{transform:'translateY(0)'}
-    ], {duration:420, easing:'ease-out'}).finished;
-    stage.classList.remove('eating');
+    // all done: BLEEEAT
+    await wait(120);
+    await doBleat();
     busy = false;
   }
   async function feed(){
     ac(); load('bite'); load('bleat');
     if (busy){ queued = Math.min(queued + 1, 5); return; }
+    busy = true;
+    if (bleatP) await bleatP;          // let a poke-bleat finish first
     await feedOnce();
     while (queued > 0){ queued--; await feedOnce(); }
   }
@@ -373,9 +372,12 @@
       {transform:`scale(1.06) rotate(${rot}deg)`, opacity:0}
     ], {duration:1150, easing:'ease-out'}).finished.then(() => s.remove());
   }
-  let bleating = false;
-  async function bleat(){
+  let bleating = false, bleatP = null;
+  function bleat(){
     if (busy || bleating) return;
+    bleatP = doBleat().then(() => { bleatP = null; });
+  }
+  async function doBleat(){
     bleating = true;
     stage.classList.add('eating');
     sfx.bleat();
