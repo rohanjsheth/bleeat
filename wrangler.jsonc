@@ -1,0 +1,9 @@
+{
+  // Static site only: Cloudflare serves the prebuilt files in ./site.
+  // "name" must match the Worker's name in the Cloudflare dashboard.
+  "name": "bleeat",
+  "compatibility_date": "2026-11-20",
+  "assets": {
+    "directory": "./site"
+  }
+}
