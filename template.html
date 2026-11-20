@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>blee.eat</title>
+<meta name="theme-color" content="#87CEEB">
+<meta property="og:title" content="blee.eat">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blee.eat/">
+<meta property="og:image" content="https://blee.eat/preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="blee.eat">
+<meta name="twitter:image" content="https://blee.eat/preview.png">
+<link rel="icon" type="image/png" href="data:image/png;base64,__FAV__">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@800;900&display=swap" rel="stylesheet">
+<style>
+  /* Same type as simin.eat: Crumbl Sans if installed, Outfit as the free lookalike.
+*/
+  :root{
+    --sky:#87CEEB;
+    --ink:#000;
+    --font:"CrumblSansFont","Crumbl Sans","Outfit",ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--sky);
+    font-family:var(--font);
+    overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;-webkit-user-select:none;
+    touch-action:manipulation;
+  }
+  .stage{
+    position:fixed;inset:calc(78px + env(safe-area-inset-top)) 0 calc(118px + env(safe-area-inset-bottom)) 0;
+    display:flex;align-items:center;justify-content:center;
+    padding:8px 10px 0;
+  }
+  .bob{animation:bob 3.2s ease-in-out infinite;transform-origin:50% 90%}
+  .eating .bob{animation-play-state:paused}
+  @keyframes bob{
+    0%,100%{transform:translateY(0) rotate(-1.2deg)}
+    50%{transform:translateY(-8px) rotate(1.2deg)}
+  }
+  .sticker{
+    position:relative;cursor:pointer;
+    height:min(calc((100vh - 210px - env(safe-area-inset-bottom) - env(safe-area-inset-top)) * .72), calc((100vw - 20px) * .8 * __AR__));
+    height:min(calc((100dvh - 210px - env(safe-area-inset-bottom) - env(safe-area-inset-top)) * .72), calc((100vw - 20px) * .8 * __AR__));
+    aspect-ratio:__W__/__H__;
+    filter:drop-shadow(0 14px 22px rgba(20,80,130,.30)) drop-shadow(0 2px 3px rgba(0,0,0,.12));
+    transform-origin:70% 60%;
+  }
+  .sticker img{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none}
+  #jaw{will-change:transform}
+
+  .feed{
+    position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);
+    font-family:var(--font);font-weight:800;font-size:30px;letter-spacing:-.01em;
+    color:#fff;background:var(--ink);border:0;border-radius:999px;
+    padding:14px 46px 16px;cursor:pointer;z-index:8;
+    box-shadow:0 6px 0 rgba(0,0,0,.18);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .feed:hover{transform:translateX(-50%) translateY(-2px)}
+  .feed:active{transform:translateX(-50%) translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+
+  .counter{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) rotate(-3deg);
+    z-index:9;pointer-events:none;white-space:nowrap;text-align:center;
+    font-family:var(--font);font-weight:900;font-size:clamp(36px, 7vw, 58px);line-height:1;
+    color:#fff;-webkit-text-stroke:.16em #000;paint-order:stroke fill;text-shadow:0 4px 0 #000;
+    font-variant-numeric:tabular-nums}
+  .counter span{display:inline-block}
+
+  .mute{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:10;
+    width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.85);color:#fff;
+    display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .mute svg{width:22px;height:22px}
+  .mute .off{display:none} .mute.muted .on{display:none} .mute.muted .off{display:block}
+
+  #tuft{position:fixed;left:0;top:0;pointer-events:none;z-index:5;opacity:0;
+    filter:drop-shadow(0 10px 14px rgba(20,80,130,.28))}
+  .bit{position:fixed;left:0;top:0;pointer-events:none;z-index:6;border-radius:40% 40% 50% 50%}
+  .nom{position:fixed;left:0;top:0;z-index:7;pointer-events:none;
+    font-family:var(--font);font-weight:900;color:#000;white-space:nowrap}
+
+  .bubble{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:4}
+  .bubble text{font-family:var(--font);font-weight:900}
+</style>
+</head>
+<body>
+  <div class="counter" id="counter"><span id="calnum">0</span> cal</div>
+  <div class="stage" id="stage">
+    <div class="bob">
+      <div class="sticker" id="sticker" role="button" aria-label="Poke the sheep">
+        <img id="base" alt="" src="data:image/webp;base64,__BASE__">
+        <img id="jaw" alt="" src="data:image/webp;base64,__JAW__">
+      </div>
+    </div>
+  </div>
+  <canvas id="tuft" width="480" height="480"></canvas>
+  <button class="feed" id="feed">feed</button>
+  <button class="mute" id="mute" aria-label="Toggle sound">
+    <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+    <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+  </button>
+
+<script>
+/* sounds: "Sheep Baa" by AntumDeluge from a recording by mikewest (CC0, OpenGameArt)
+           "Crunchy bite" (CC0, OpenGameArt) */
+(() => {
+  const SW = __W__, SH = __H__;
+  const MX = __MX__, MY = __MY__;        // mouth, as a fraction of the sticker
+  const OPEN = 2.4, WIDE = 3.6;          // jaw drop, % of sticker height
+  const CAL_PER_BITE = 6;                // it's grass. sheep is on a diet.
+  const BITES = [150, 235, 315, 400];    // tuft canvas y of each bite, top to bottom
+
+  const stage = document.getElementById('stage');
+  const sticker = document.getElementById('sticker');
+  const jaw = document.getElementById('jaw');
+  const btn = document.getElementById('feed');
+  const cv = document.getElementById('tuft');
+  const ctx = cv.getContext('2d');
+  const tuftImg = new Image();
+  tuftImg.src = 'data:image/webp;base64,__TUFT__';
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const rand = (a, b) => a + Math.random() * (b - a);
+  let jawPos = 0, busy = false, queued = 0;
+
+  function resetTuft(){
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, 480, 480);
+    ctx.drawImage(tuftImg, 0, 0, 480, 480);
+  }
+  function moveJaw(to, ms, easing='ease-out'){
+    const a = jaw.animate([{transform:`translateY(${jawPos}%)`},{transform:`translateY(${to}%)`}],
+      {duration:ms, easing, fill:'forwards'});
+    jawPos = to; return a.finished;
+  }
+  function geom(){
+    const r = sticker.getBoundingClientRect();
+    return { r, mx:r.left + r.width*MX, my:r.top + r.height*MY, size:r.width*0.3 };
+  }
+  // tuft transform: centre at (x,y), scale s, rotation deg
+  const tf = (g,x,y,s,rot=0) => `translate(${x-g.size/2}px,${y-g.size/2}px) scale(${s}) rotate(${rot}deg)`;
+  // tuft centre so that bite row k sits right at the mouth
+  const atMouth = (g,k) => ({ x:g.mx, y:g.my + (240 - BITES[k]) * g.size/480 + g.size*0.02 });
+  let tuftT = '';
+  function moveTuft(g, to, ms, easing='ease-out'){
+    const a = cv.animate([{transform:tuftT || to},{transform:to}], {duration:ms, easing, fill:'forwards'});
+    tuftT = to; return a.finished;
+  }
+
+  // chomp a scalloped bite out of the top of what's left
+  function bite(k){
+    if (k === BITES.length - 1){ ctx.clearRect(0,0,480,480); return; }
+    const y = BITES[k];
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath(); ctx.rect(0, 0, 480, y - 6); ctx.fill();
+    for (let x = 40; x <= 440; x += 44){
+      ctx.beginPath(); ctx.arc(x + rand(-6,6), y + rand(-4,10), rand(22,30), 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // little grass bits falling from the mouth
+  const GREENS = ['#3f9a2c','#5fbf3a','#2f7f24','#7fd04a'], DIRT = ['#4a3324','#3a281c','#5c4130','#2e2017'];
+  function bits(x, y, n, scale, k=0){
+    for (let i=0;i<n;i++){
+      const d = document.createElement('div'); d.className = 'bit';
+      const w = rand(3,6)*scale, h = rand(10,20)*scale;
+      d.style.width = w+'px'; d.style.height = h+'px';
+      const dirt = k >= 2 && i % 2 === 0;
+      d.style.background = dirt ? DIRT[i % DIRT.length] : GREENS[i % GREENS.length];
+      if (dirt){ d.style.height = w*1.1+'px'; d.style.borderRadius = '45%'; }
+      document.body.appendChild(d);
+      const dx = rand(-70,70)*scale, dy = rand(90,190)*scale, r0 = rand(0,360), r1 = r0 + rand(-260,260);
+      d.animate([
+        {transform:`translate(${x}px,${y}px) rotate(${r0}deg)`, opacity:1},
+        {transform:`translate(${x+dx*.6}px,${y-24*scale}px) rotate(${(r0+r1)/2}deg)`, opacity:1, offset:.3},
+        {transform:`translate(${x+dx}px,${y+dy}px) rotate(${r1}deg)`, opacity:0}
+      ], {duration:rand(650,950), easing:'cubic-bezier(.3,.1,.6,1)'}).finished.then(()=>d.remove());
+    }
+  }
+
+  const NOMS = ['nom','nom','NOM','NOM!!'];
+  function nomText(g, k){
+    const d = document.createElement('div'); d.className = 'nom';
+    d.textContent = NOMS[k];
+    const fs = Math.max(k < 2 ? 26 : 32, g.r.width * (k < 2 ? .07 : .09));
+    d.style.fontSize = fs + 'px';
+    document.body.appendChild(d);
+    const side = k % 2 ? 1 : -1;
+    const x = g.mx + side * g.r.width * .17 - (side < 0 ? d.offsetWidth : 0);
+    const y = g.my - g.r.height * .08 - k * 6;
+    const rot = side * rand(6, 12);
+    d.animate([
+      {transform:`translate(${x}px,${y}px) scale(.4) rotate(${rot}deg)`, opacity:0},
+      {transform:`translate(${x}px,${y-10}px) scale(1.15) rotate(${rot}deg)`, opacity:1, offset:.25},
+      {transform:`translate(${x}px,${y-18}px) scale(1) rotate(${rot}deg)`, opacity:1, offset:.7},
+      {transform:`translate(${x}px,${y-40}px) scale(1) rotate(${rot}deg)`, opacity:0}
+    ], {duration:900, easing:'ease-out'}).finished.then(()=>d.remove());
+  }
+
+  // ---------- calorie counter ----------
+  const counter = document.getElementById('counter');
+  const calnum = document.getElementById('calnum');
+  let eaten = 0, shown = 0, tweenId = 0;
+  function addCals(n){
+    eaten += n;
+    const from = shown, to = eaten, id = ++tweenId, t0 = performance.now();
+    (function step(t){
+      if (id !== tweenId) return;
+      const p = Math.min(1, (t - t0) / 260);
+      shown = Math.round(from + (to - from) * p);
+      calnum.textContent = shown.toLocaleString();
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+    calnum.animate([{transform:'scale(1)'},{transform:'scale(1.25)'},{transform:'scale(1)'}],
+      {duration:260, easing:'ease-out'});
+  }
+
+  // ---------- sounds ----------
+  let actx = null, muted = false;
+  try { muted = localStorage.getItem('blee-muted') === '1'; } catch(e) {}
+  const muteBtn = document.getElementById('mute');
+  muteBtn.classList.toggle('muted', muted);
+  muteBtn.addEventListener('click', e => {
+    e.stopPropagation(); muted = !muted; muteBtn.classList.toggle('muted', muted);
+    try { localStorage.setItem('blee-muted', muted ? '1' : '0'); } catch(e) {}
+    if (!muted) { ac(); blip(880, 1320, .09, .12, 'sine'); }
+  });
+  function ac(){
+    if (muted) return null;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      return actx;
+    } catch(e) { return null; }
+  }
+  function blip(f1, f2, dur, vol=.2, type='triangle', delay=0){
+    const a = ac(); if (!a) return;
+    const t0 = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f1, t0);
+    o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(a.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  const SAMPLES = { bite:'data:audio/mpeg;base64,__BITE__', bleat:'data:audio/mpeg;base64,__BLEAT__' };
+  const decoded = {};
+  function load(name){
+    const a = ac(); if (!a) return Promise.resolve(null);
+    if (!decoded[name]) decoded[name] = fetch(SAMPLES[name]).then(r => r.arrayBuffer())
+      .then(b => new Promise((res, rej) => a.decodeAudioData(b, res, rej))).catch(() => null);
+    return decoded[name];
+  }
+  async function play(name, rate=1, vol=1){
+    const a = ac(); if (!a) return;
+    const buf = await load(name); if (!buf || muted) return;
+    const s = a.createBufferSource(), g = a.createGain();
+    s.buffer = buf; s.playbackRate.value = rate; g.gain.value = vol;
+    s.connect(g).connect(a.destination); s.start();
+  }
+  // warm up audio + decode on the first touch so the first sound isn't late
+  addEventListener('pointerdown', () => { load('bite'); load('bleat'); }, { once:true });
+  const BITE_RATE = [1.0, 1.06, 1.13, 1.22];
+  const sfx = {
+    fly(){ blip(500, 1400, .28, .07, 'sine'); },
+    nom(k){ play('bite', BITE_RATE[k], k===3 ? 1 : .85); },
+    gulp(){ blip(700, 260, .16, .16, 'sine'); },
+    yay(){ [1046.5, 1318.5, 1568, 2093].forEach((f,i) => blip(f, f*1.01, .16, .07, 'sine', i*.07)); },
+    bleat(){ play('bleat', rand(.94, 1.1), .9); }
+  };
+
+  // ---------- feeding ----------
+  async function feedOnce(){
+    busy = true;
+    stage.classList.add('eating');
+    resetTuft();
+    let g = geom();
+    cv.style.width = cv.style.height = g.size + 'px';
+    const b = btn.getBoundingClientRect();
+    const sx = b.left + b.width/2, sy = b.top;
+    const p = atMouth(g, 0);
+    tuftT = tf(g, sx, sy, .3, -18);
+    cv.style.transform = tuftT; cv.style.opacity = 1;
+    sfx.fly();
+    await moveTuft(g, tf(g, p.x, p.y + g.size*.25, 1, 6), 520, 'cubic-bezier(.2,.8,.3,1)');
+
+    for (let k = 0; k < BITES.length; k++){
+      g = geom();
+      const q = atMouth(g, k);
+      // lean in while the jaw opens
+      moveJaw(OPEN * (k === 3 ? 1.25 : 1), 150);
+      await moveTuft(g, tf(g, q.x, q.y, 1, k % 2 ? -4 : 4), 170, 'ease-out');
+      // chomp
+      await moveJaw(0, 85, 'ease-in');
+      bite(k); sfx.nom(k); nomText(g, k); addCals(CAL_PER_BITE);
+      bits(g.mx, g.my + g.r.height*.03, 7, g.r.width/600, k);
+      sticker.animate([{transform:'scale(1)'},{transform:'scale(1.025,.975)'},{transform:'scale(1)'}],{duration:180});
+      // tug back a little
+      await moveTuft(g, tf(g, q.x, q.y + g.size*.07, 1, 0), 140, 'ease-out');
+      await wait(110);
+    }
+    cv.style.opacity = 0;
+
+    // swallow + chew
+    sfx.gulp();
+    for (let i = 0; i < 4; i++){ await moveJaw(1.1, 95); await moveJaw(0, 95, 'ease-in'); }
+    sfx.yay();
+    await sticker.animate([
+      {transform:'translateY(0)'},{transform:'translateY(-4%) rotate(-2deg)'},
+      {transform:'translateY(0) scale(1.03,.97)'},{transform:'translateY(0)'}
+    ], {duration:420, easing:'ease-out'}).finished;
+    stage.classList.remove('eating');
+    busy = false;
+  }
+  async function feed(){
+    ac(); load('bite'); load('bleat');
+    if (busy){ queued = Math.min(queued + 1, 5); return; }
+    await feedOnce();
+    while (queued > 0){ queued--; await feedOnce(); }
+  }
+
+  // ---------- poke → BLEEEAT ----------
+  const NS = 'http://www.w3.org/2000/svg';
+  function bubble(){
+    const s = document.createElementNS(NS, 'svg');
+    s.setAttribute('class', 'bubble');
+    s.setAttribute('viewBox', `0 0 ${SW} ${SH}`);
+    s.setAttribute('preserveAspectRatio', 'none');
+    const word = 'BLEE' + 'E'.repeat(Math.floor(rand(0, 3))) + 'AT!';
+    const cx = SW*.34, cy = SH*.13, rx = 80 + word.length*31, ry = 112;
+    // spiky shout burst
+    const n = 22, pts = [];
+    for (let i = 0; i < n*2; i++){
+      const a = (i / (n*2)) * Math.PI*2, out = i % 2 === 0;
+      const k = out ? rand(1.08, 1.26) : rand(.84, .9);
+      pts.push([cx + Math.cos(a)*rx*k, cy + Math.sin(a)*ry*k]);
+    }
+    const tipX = SW*MX - SW*.035, tipY = SH*MY - SH*.04;
+    const tail = `M${cx + rx*.35},${cy + ry*.55} L${tipX},${tipY} L${cx + rx*.7},${cy + ry*.2} Z`;
+    const burst = 'M' + pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' L') + ' Z';
+    const g = document.createElementNS(NS, 'g');
+    g.innerHTML = `
+      <path d="${tail}" fill="#fff" stroke="#000" stroke-width="9" stroke-linejoin="round"/>
+      <path d="${burst}" fill="#000" transform="translate(7 9)"/>
+      <path d="${burst}" fill="#fff" stroke="#000" stroke-width="9" stroke-linejoin="round"/>
+      <path d="${tail}" fill="#fff"/>
+      <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="88"
+        letter-spacing="-1" fill="#000">${word}</text>`;
+    s.appendChild(g);
+    sticker.appendChild(s);
+    const rot = rand(-7, 3);
+    s.style.transformOrigin = `${MX*100 - 3}% ${MY*100 - 4}%`;
+    s.animate([
+      {transform:`scale(.15) rotate(${rot-12}deg)`, opacity:0},
+      {transform:`scale(1.12) rotate(${rot+2}deg)`, opacity:1, offset:.16},
+      {transform:`scale(.97) rotate(${rot-1}deg)`, offset:.26},
+      {transform:`scale(1.02) rotate(${rot+1}deg)`, offset:.34},
+      {transform:`scale(1) rotate(${rot}deg)`, opacity:1, offset:.82},
+      {transform:`scale(1.06) rotate(${rot}deg)`, opacity:0}
+    ], {duration:1150, easing:'ease-out'}).finished.then(() => s.remove());
+  }
+  let bleating = false;
+  async function bleat(){
+    if (busy || bleating) return;
+    bleating = true;
+    stage.classList.add('eating');
+    sfx.bleat();
+    bubble();
+    sticker.animate([
+      {transform:'rotate(0) scale(1)'},
+      {transform:'rotate(-2.5deg) scale(1.04,.97)', offset:.12},
+      {transform:'rotate(2deg) scale(1.03)', offset:.3},
+      {transform:'rotate(-1.5deg) scale(1.03)', offset:.5},
+      {transform:'rotate(1deg) scale(1.02)', offset:.7},
+      {transform:'rotate(0) scale(1)'}
+    ], {duration:800, easing:'ease-out'});
+    // jaw quivers like a real baa
+    const kf = [0, WIDE, WIDE*.72, WIDE, WIDE*.75, WIDE*.95, WIDE*.7, WIDE*.9, 0].map(v => ({transform:`translateY(${v}%)`}));
+    await jaw.animate(kf, {duration:820, easing:'ease-in-out', fill:'forwards'}).finished;
+    jawPos = 0;
+    stage.classList.remove('eating');
+    bleating = false;
+  }
+
+  btn.addEventListener('click', feed);
+  sticker.addEventListener('click', () => { ac(); bleat(); });
+  addEventListener('keydown', e => {
+    if (e.code === 'Space'){ e.preventDefault(); feed(); }
+    if (e.key === 'b' || e.key === 'B') bleat();
+  });
+})();
+</script>
+</body>
+</html>
