@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
   /* Same type as simin.eat: Crumbl Sans if installed, Outfit as the free lookalike.
 */
@@ -38,9 +38,9 @@
     touch-action:manipulation;
   }
   .stage{
-    position:fixed;inset:calc(78px + env(safe-area-inset-top)) 0 calc(118px + env(safe-area-inset-bottom)) 0;
+    position:fixed;inset:0 0 calc(118px + env(safe-area-inset-bottom)) 0;
     display:flex;align-items:center;justify-content:center;
-    padding:8px 10px 0;
+    padding:44px 10px 0;
   }
   .bob{animation:bob 3.2s ease-in-out infinite;transform-origin:50% 90%}
   .eating .bob{animation-play-state:paused}
@@ -50,8 +50,8 @@
   }
   .sticker{
     position:relative;cursor:pointer;
-    height:min(calc((100vh - 210px - env(safe-area-inset-bottom) - env(safe-area-inset-top)) * .72), calc((100vw - 20px) * .8 * __AR__));
-    height:min(calc((100dvh - 210px - env(safe-area-inset-bottom) - env(safe-area-inset-top)) * .72), calc((100vw - 20px) * .8 * __AR__));
+    height:min(calc((100vh - 180px - env(safe-area-inset-bottom)) * .72), calc((100vw - 20px) * .8 * __AR__));
+    height:min(calc((100dvh - 180px - env(safe-area-inset-bottom)) * .72), calc((100vw - 20px) * .8 * __AR__));
     aspect-ratio:__W__/__H__;
     filter:drop-shadow(0 14px 22px rgba(20,80,130,.30)) drop-shadow(0 2px 3px rgba(0,0,0,.12));
     transform-origin:70% 60%;
@@ -71,9 +71,10 @@
   .feed:hover{transform:translateX(-50%) translateY(-2px)}
   .feed:active{transform:translateX(-50%) translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
 
-  .counter{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) rotate(-3deg);
+  .bob{position:relative}
+  .counter{position:absolute;left:50%;top:1%;transform:translate(-50%,-30%) rotate(-4deg);
     z-index:9;pointer-events:none;white-space:nowrap;text-align:center;
-    font-family:var(--font);font-weight:900;font-size:clamp(36px, 7vw, 58px);line-height:1;
+    font-family:var(--font);font-weight:900;font-size:40px;line-height:1;
     color:#fff;-webkit-text-stroke:.16em #000;paint-order:stroke fill;text-shadow:0 4px 0 #000;
     font-variant-numeric:tabular-nums}
   .counter span{display:inline-block}
@@ -89,17 +90,24 @@
   .bit{position:fixed;left:0;top:0;pointer-events:none;z-index:6;border-radius:40% 40% 50% 50%}
   .nom{position:fixed;left:0;top:0;z-index:7;pointer-events:none;
     font-family:var(--font);font-weight:900;color:#000;white-space:nowrap}
+  .cal{position:fixed;left:0;top:0;z-index:8;pointer-events:none;white-space:nowrap;
+    font-family:var(--font);font-weight:900;color:#fff;letter-spacing:-.01em;
+    -webkit-text-stroke:.16em #000;paint-order:stroke fill;
+    text-shadow:0 3px 0 #000}
+  .bleat{position:fixed;left:0;top:0;z-index:8;pointer-events:none;white-space:nowrap;
+    font-family:var(--font);font-weight:900;color:#fff;letter-spacing:.02em;
+    -webkit-text-stroke:.16em #000;paint-order:stroke fill;text-shadow:0 4px 0 #000}
 
 </style>
 </head>
 <body>
-  <div class="counter" id="counter"><span id="calnum">0</span> cal</div>
   <div class="stage" id="stage">
     <div class="bob">
       <div class="sticker" id="sticker" role="button" aria-label="Poke the sheep">
         <img id="base" alt="" src="data:image/webp;base64,__BASE__">
         <img id="jaw" alt="" src="data:image/webp;base64,__JAW__">
       </div>
+      <div class="counter" id="counter"><span id="calnum">0</span> cal</div>
     </div>
   </div>
   <canvas id="tuft" width="480" height="480"></canvas>
@@ -188,22 +196,37 @@
   }
 
   const NOMS = ['nom','nom','NOM','NOM!!'];
-  function nomText(g, k){
-    const d = document.createElement('div'); d.className = 'nom';
-    d.textContent = NOMS[k];
-    const fs = Math.max(k < 2 ? 26 : 32, g.r.width * (k < 2 ? .07 : .09));
-    d.style.fontSize = fs + 'px';
-    document.body.appendChild(d);
-    const side = k % 2 ? 1 : -1;
-    const x = g.mx + side * g.r.width * .17 - (side < 0 ? d.offsetWidth : 0);
-    const y = g.my - g.r.height * .08 - k * 6;
-    const rot = side * rand(6, 12);
-    d.animate([
-      {transform:`translate(${x}px,${y}px) scale(.4) rotate(${rot}deg)`, opacity:0},
-      {transform:`translate(${x}px,${y-10}px) scale(1.15) rotate(${rot}deg)`, opacity:1, offset:.25},
-      {transform:`translate(${x}px,${y-18}px) scale(1) rotate(${rot}deg)`, opacity:1, offset:.7},
-      {transform:`translate(${x}px,${y-40}px) scale(1) rotate(${rot}deg)`, opacity:0}
-    ], {duration:900, easing:'ease-out'}).finished.then(()=>d.remove());
+  function nomText(g, i){
+    const el = document.createElement('div'); el.className = 'nom'; el.textContent = NOMS[i];
+    const fs = Math.max(26, g.r.width*0.085)*[1,1.05,1.25,1.5][i];
+    el.style.fontSize = fs + 'px';
+    document.body.appendChild(el);
+    const w = el.offsetWidth, side = i%2 ? -1 : 1;
+    let x = g.mx + side*g.r.width*0.36 - (side<0 ? w : 0);
+    x = Math.min(innerWidth - w - 10, Math.max(10, x));
+    const y = g.my - g.r.height*0.08 - (i===3 ? fs*0.3 : 0);
+    const rot = side*(8 + Math.random()*8);
+    el.animate([
+      {transform:`translate(${x}px,${y}px) scale(.3) rotate(${rot}deg)`, opacity:0},
+      {transform:`translate(${x}px,${y-20}px) scale(1.1) rotate(${rot}deg)`, opacity:1, offset:.25},
+      {transform:`translate(${x}px,${y-50}px) scale(1) rotate(${rot}deg)`, opacity:0}
+    ], {duration:i===3 ? 1100 : 900, easing:'ease-out'}).finished.then(()=>el.remove());
+  }
+  // "+6 cal" pops, same as simin.eat's
+  function calPop(g, n, i){
+    const el = document.createElement('div'); el.className = 'cal';
+    el.textContent = `+${n} cal`;
+    const fs = Math.max(24, g.r.width*0.075);
+    el.style.fontSize = fs + 'px';
+    document.body.appendChild(el);
+    const w = el.offsetWidth, side = i%2 ? 1 : -1;
+    const x = Math.min(innerWidth - w - 10, Math.max(10, g.mx + side*g.r.width*0.30 - w/2)), y = g.my + g.r.height*0.02;
+    el.animate([
+      {transform:`translate(${x}px,${y}px) scale(.4)`, opacity:0},
+      {transform:`translate(${x}px,${y-30}px) scale(1.12)`, opacity:1, offset:.2},
+      {transform:`translate(${x}px,${y-40}px) scale(1)`, opacity:1, offset:.7},
+      {transform:`translate(${x}px,${y-90}px) scale(.95)`, opacity:0}
+    ], {duration:1400, easing:'ease-out'}).finished.then(()=>el.remove());
   }
 
   // ---------- calorie counter ----------
@@ -212,17 +235,19 @@
   let eaten = 0, shown = 0, tweenId = 0;
   function addCals(n){
     eaten += n;
-    const from = shown, to = eaten, id = ++tweenId, t0 = performance.now();
-    (function step(t){
+    const from = shown, to = eaten, t0 = performance.now(), dur = 650, id = ++tweenId;
+    calnum.animate([{transform:'scale(1)'},{transform:'scale(1.25) rotate(-3deg)'},{transform:'scale(1)'}],
+      {duration:350, easing:'ease-out'});
+    (function step(now){
       if (id !== tweenId) return;
-      const p = Math.min(1, (t - t0) / 260);
-      shown = Math.round(from + (to - from) * p);
-      calnum.textContent = shown.toLocaleString();
+      const p = Math.min(1, (now - t0)/dur), e = 1 - Math.pow(1-p, 3);
+      shown = Math.round(from + (to-from)*e);
+      calnum.textContent = shown.toLocaleString('en-US');
       if (p < 1) requestAnimationFrame(step);
     })(t0);
-    calnum.animate([{transform:'scale(1)'},{transform:'scale(1.25)'},{transform:'scale(1)'}],
-      {duration:260, easing:'ease-out'});
   }
+  const sizeCounter = () => counter.style.fontSize = Math.max(30, sticker.offsetWidth*0.12) + 'px';
+  sizeCounter(); addEventListener('resize', sizeCounter);
 
   // ---------- sounds ----------
   let actx = null, muted = false;
@@ -304,7 +329,7 @@
       await moveTuft(g, tf(g, q.x, q.y, 1, k % 2 ? -4 : 4), 170, 'ease-out');
       // chomp
       await moveJaw(0, 85, 'ease-in');
-      bite(k); sfx.nom(k); nomText(g, k); addCals(CAL_PER_BITE);
+      bite(k); sfx.nom(k); nomText(g, k); calPop(g, CAL_PER_BITE, k); addCals(CAL_PER_BITE);
       bits(g.mx, g.my + g.r.height*.03, 7, g.r.width/600, k);
       sticker.animate([{transform:'scale(1)'},{transform:'scale(1.025,.975)'},{transform:'scale(1)'}],{duration:180});
       // tug back a little
@@ -331,25 +356,22 @@
   }
 
   // ---------- poke → BLEEEAT ----------
-  // plain text, same style as the noms, just bigger
+  // BLEEEAT: same style and wobble as simin.eat's BURP
   function bubble(){
     const g = geom();
-    const d = document.createElement('div'); d.className = 'nom';
-    d.textContent = 'BLEE' + 'E'.repeat(Math.floor(rand(0, 3))) + 'AT!';
-    d.style.fontSize = Math.max(34, g.r.width * .11) + 'px';
-    d.style.color = '#fff';
-    d.style.textShadow = '0 3px 12px rgba(20,80,130,.35)';
-    document.body.appendChild(d);
-    const x = g.mx - g.r.width * .1 - d.offsetWidth;
-    const y = g.my - g.r.height * .3;
-    const rot = rand(-10, -4);
-    d.animate([
-      {transform:`translate(${x}px,${y+20}px) scale(.3) rotate(${rot}deg)`, opacity:0},
-      {transform:`translate(${x}px,${y}px) scale(1.15) rotate(${rot}deg)`, opacity:1, offset:.16},
-      {transform:`translate(${x}px,${y-4}px) scale(1) rotate(${rot}deg)`, opacity:1, offset:.3},
-      {transform:`translate(${x}px,${y-12}px) scale(1) rotate(${rot}deg)`, opacity:1, offset:.8},
-      {transform:`translate(${x}px,${y-30}px) scale(1) rotate(${rot}deg)`, opacity:0}
-    ], {duration:1150, easing:'ease-out'}).finished.then(() => d.remove());
+    const el = document.createElement('div'); el.className = 'bleat';
+    el.textContent = 'BLEE' + 'E'.repeat(Math.floor(rand(0, 3))) + 'AT!';
+    const fs = Math.max(34, g.r.width*0.13); el.style.fontSize = fs + 'px';
+    document.body.appendChild(el);
+    const w = el.offsetWidth;
+    const x = Math.min(innerWidth - w - 10, Math.max(10, g.mx - w - g.r.width*0.1)), y = g.my - g.r.height*0.12;
+    el.animate([
+      {transform:`translate(${x}px,${y+30}px) scale(.3) rotate(-10deg)`, opacity:0},
+      {transform:`translate(${x}px,${y}px) scale(1.15) rotate(6deg)`, opacity:1, offset:.18},
+      {transform:`translate(${x+4}px,${y-4}px) scale(1) rotate(-5deg)`, opacity:1, offset:.35},
+      {transform:`translate(${x-4}px,${y-8}px) scale(1) rotate(5deg)`, opacity:1, offset:.5},
+      {transform:`translate(${x}px,${y-60}px) scale(1) rotate(0deg)`, opacity:0}
+    ], {duration:1300, easing:'ease-out'}).finished.then(()=>el.remove());
   }
   let bleating = false, bleatP = null;
   function bleat(){
